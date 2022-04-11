@@ -5,7 +5,6 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
-from torch.autograd import Variable
 from torch.nn import Parameter
 
 from collections import OrderedDict
@@ -61,13 +60,15 @@ class ResidualBlock(nn.Module):
         self.res_scale = res_scale
         if se_reduction is not None:
             self.se_layer = SElayer(channel, se_reduction)
+        else: # Support torch.jit.script
+            self.se_layer = nn.Identity()
+
     
     def forward(self, x):
         res = x
         x = self.conv1(x)
         x = self.conv2(x)
-        if self.se_layer:
-            x = self.se_layer(x)
+        x = self.se_layer(x)
         x = x * self.res_scale
         out = x + res
         return out
@@ -141,14 +142,14 @@ class ResidualCbamBlock(nn.Module):
         self.cbam_layer = None
         if cbam_reduction is not None:
             self.cbam_layer = CBAMlayer(channel, cbam_reduction)
-        
+        else: # Support torch.jit.script
+            self.cbam_layer = nn.Identity()
+
     def forward(self, x):
         res = x
         x = self.conv1(x)
         x = self.conv2(x)
-        if self.cbam_layer:
-            x = self.cbam_layer(x)
-        
+        x = self.cbam_layer(x)
         out = x + res
         return out 
 
@@ -165,7 +166,6 @@ class SingleLaplacian(nn.Module):
         laplacian_kernel = np.repeat(laplacian_kernel[None, None, :, :], dim, 0)
         # learnable kernel.
         self.kernel = torch.nn.Parameter(torch.FloatTensor(laplacian_kernel))
-        # self.kernel = Variable(torch.FloatTensor(laplacian_kernel).to(device))
     
     def forward(self, x):
         # pyramid module in 4 scales.
@@ -188,7 +188,6 @@ class LaplacianPyramid(nn.Module):
         laplacian_kernel = np.repeat(laplacian_kernel[None, None, :, :], dim, 0)
         # learnable laplacian kernel
         self.kernel = torch.nn.Parameter(torch.FloatTensor(laplacian_kernel))
-        # self.kernel = Variable(torch.FloatTensor(laplacian_kernel).to(device))
     
     def forward(self, x):
         # pyramid module for 4 scales.
@@ -199,9 +198,9 @@ class LaplacianPyramid(nn.Module):
         lap_1 = F.conv2d(x1, self.kernel, groups=self.channel_dim, padding=1, stride=1, dilation=1)
         lap_2 = F.conv2d(x2, self.kernel, groups=self.channel_dim, padding=1, stride=1, dilation=1)
         lap_3 = F.conv2d(x, self.kernel, groups=self.channel_dim, padding=1, stride=1, dilation=1)
-        lap_0 = F.interpolate(lap_0, scale_factor=8, mode='bilinear')
-        lap_1 = F.interpolate(lap_1, scale_factor=4, mode='bilinear')
-        lap_2 = F.interpolate(lap_2, scale_factor=2, mode='bilinear')
+        lap_0 = F.interpolate(lap_0, scale_factor=8.0, mode='bilinear')
+        lap_1 = F.interpolate(lap_1, scale_factor=4.0, mode='bilinear')
+        lap_2 = F.interpolate(lap_2, scale_factor=2.0, mode='bilinear')
 
         return torch.cat([lap_0, lap_1, lap_2, lap_3], 1)
 
@@ -506,8 +505,8 @@ class LocationAwareSIRR(nn.Module):
 
     def init(self):
         b,c,h,w = self.I.shape
-        self.h = Variable(torch.zeros(b, 64, h, w, device=self.device))
-        self.c = Variable(torch.zeros(b, 64, h, w, device=self.device))
+        self.h = torch.zeros(b, 64, h, w, device=self.device)
+        self.c = torch.zeros(b, 64, h, w, device=self.device)
         
         self.fake_T = self.I.clone().detach()
         self.fake_Ts = [self.fake_T]

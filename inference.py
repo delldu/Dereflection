@@ -12,6 +12,8 @@ from utils import html
 from tqdm import tqdm
 import numpy as np
 import time
+import pdb
+
 warnings.filterwarnings('ignore')
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -38,6 +40,9 @@ dataset = DatasetDataLoader(opts)
 model = LocationAwareSIRR(opts, device)
 model.setup()
 model.eval()
+
+# pdb.set_trace()
+
 
 # create a website.
 web_dir = os.path.join(opts.save_dir, opts.name) # define the website directory.
