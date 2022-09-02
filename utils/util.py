@@ -14,10 +14,11 @@ def tensor2im(image_tensor, imtype=np.uint8):
     # the image is normalized to [-1, 1] here.
     if image_numpy.shape[0] == 1:
         image_numpy = np.tile(image_numpy, (3, 1, 1))
-    image_numpy = np.transpose(image_numpy, (1, 2, 0)) * 255.
+    image_numpy = np.transpose(image_numpy, (1, 2, 0)) * 255.0
     return image_numpy.astype(imtype)
 
-def diagnose_network(net, name='network'):
+
+def diagnose_network(net, name="network"):
     mean = 0.0
     count = 0
     for param in net.parameters():
@@ -29,34 +30,43 @@ def diagnose_network(net, name='network'):
     print(name)
     print(mean)
 
+
 def torch_sample_random_value(min, max, size):
     # first sample random in [0,1].
     rand_m = torch.rand(*size)
     return rand_m * (max - min) + min
+
 
 def normalize_image(image):
     # normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
     #                                  std=[0.229, 0.224, 0.225])
     return image * 2 - 1
 
+
 def unnormalize_image(image):
     return (image + 1) / 2
 
+
 def tanhshrink(x):
     return x - torch.tanh(x)
+
 
 def save_image(image_numpy, image_path):
     image_pil = Image.fromarray(image_numpy)
     image_pil.save(image_path)
 
+
 def print_numpy(x, val=True, shp=False):
     x = x.astype(np.float64)
     if shp:
-        print('shape,', x.shape)
+        print("shape,", x.shape)
     if val:
         x = x.flatten()
-        print('mean = %3.3f, min = %3.3f, max = %3.3f, median = %3.3f, std=%3.3f' % (
-            np.mean(x), np.min(x), np.max(x), np.median(x), np.std(x)))
+        print(
+            "mean = %3.3f, min = %3.3f, max = %3.3f, median = %3.3f, std=%3.3f"
+            % (np.mean(x), np.min(x), np.max(x), np.median(x), np.std(x))
+        )
+
 
 def make_power(img, base=4):
     # Make sure that the image's size is scaled to base's power.
@@ -67,6 +77,7 @@ def make_power(img, base=4):
     img = resize_operation(img)
     return img
 
+
 def mkdirs(paths):
     if isinstance(paths, list) and not isinstance(paths, str):
         for path in paths:
@@ -74,18 +85,22 @@ def mkdirs(paths):
     else:
         mkdir(paths)
 
+
 def mkdir(path):
     if not os.path.exists(path):
         os.makedirs(path)
+
 
 def compare_psnr_ssim(I1s, I2s):
     # compare images on the I1s & I2s dataset.
     psnrs = []
     ssims = []
-    assert(len(I1s) == len(I2s))
+    assert len(I1s) == len(I2s)
 
     for (I1, I2) in zip(I1s, I2s):
         psnrs.append(skimage.metrics.peak_signal_noise_ratio(I1, I2, data_range=1))
-        ssims.append(skimage.metrics.structural_similarity(I1, I2, multichannel=True, data_range=1))
-    
+        ssims.append(
+            skimage.metrics.structural_similarity(I1, I2, multichannel=True, data_range=1)
+        )
+
     return np.mean(psnrs), np.mean(ssims)
