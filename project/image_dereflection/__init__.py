@@ -22,9 +22,6 @@ from . import dereflection
 
 import pdb
 
-SIRR_ZEROPAD_TIMES = 8
-
-
 def get_model():
     """Create model."""
 
@@ -49,7 +46,7 @@ def get_model():
     return model, device
 
 
-def model_forward(model, device, input_tensor, multi_times):
+def model_forward(model, device, input_tensor, multi_times = 8):
     # zeropad for model
     H, W = input_tensor.size(2), input_tensor.size(3)
     if H % multi_times != 0 or W % multi_times != 0:
@@ -82,7 +79,7 @@ def image_server(name, host="localhost", port=6379):
         print(f"  dereflection {input_file} ...")
         try:
             input_tensor = todos.data.load_tensor(input_file)
-            output_tensor = model_forward(model, device, input_tensor, SIRR_ZEROPAD_TIMES)
+            output_tensor = model_forward(model, device, input_tensor)
             todos.data.save_tensor(output_tensor, output_file)
             return True
         except Exception as e:
@@ -112,7 +109,7 @@ def image_predict(input_files, output_dir):
 
         # pytorch recommand clone.detach instead of torch.Tensor(input_tensor)
         orig_tensor = input_tensor.clone().detach()
-        predict_tensor = model_forward(model, device, input_tensor, SIRR_ZEROPAD_TIMES)
+        predict_tensor = model_forward(model, device, input_tensor)
         output_file = f"{output_dir}/{os.path.basename(filename)}"
 
         todos.data.save_tensor([orig_tensor, predict_tensor], output_file)
@@ -143,7 +140,7 @@ def video_service(input_file, output_file, targ):
 
         # convert tensor from 1x4xHxW to 1x3xHxW
         input_tensor = input_tensor[:, 0:3, :, :]
-        output_tensor = model_forward(model, device, input_tensor, SIRR_ZEROPAD_TIMES)
+        output_tensor = model_forward(model, device, input_tensor)
 
         temp_output_file = "{}/{:06d}.png".format(output_dir, no)
         todos.data.save_tensor(output_tensor, temp_output_file)
