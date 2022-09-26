@@ -491,7 +491,7 @@ class SIRRModel(nn.Module):
         fake_c = torch.zeros(b, 64, h, w, device=x.device)
         fake_t = x.clone().detach()
 
-        for i in range(4): # default is 3
+        for i in range(4):  # default is 3
             fake_h, fake_c, fake_t = self.netG_T(x, fake_t, fake_h, fake_c)
 
         return fake_t.clamp(0.0, 1.0)
