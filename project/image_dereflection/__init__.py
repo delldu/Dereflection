@@ -46,16 +46,13 @@ def get_model():
     return model, device
 
 
-def model_forward(model, device, input_tensor, multi_times = 8):
+def model_forward(model, device, input_tensor, multi_times=8):
     # zeropad for model
     H, W = input_tensor.size(2), input_tensor.size(3)
     if H % multi_times != 0 or W % multi_times != 0:
         input_tensor = todos.data.zeropad_tensor(input_tensor, times=multi_times)
 
-    torch.cuda.synchronize()
-    with torch.jit.optimized_execution(False):
-        output_tensor = todos.model.forward(model, device, input_tensor)
-    torch.cuda.synchronize()
+    output_tensor = todos.model.forward(model, device, input_tensor)
 
     return output_tensor[:, :, 0:H, 0:W]
 
