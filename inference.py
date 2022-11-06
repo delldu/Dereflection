@@ -48,6 +48,7 @@ model = LocationAwareSIRR(opts, device)
 model.setup()
 model.eval()
 
+
 # model = torch.jit.script(model)
 
 # (Pdb) opts

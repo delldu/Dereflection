@@ -226,23 +226,23 @@ class ResidualCbamBlock(nn.Module):
         return out
 
 
-class SingleLaplacian(nn.Module):
-    def __init__(self, device, dim=3):
-        super(SingleLaplacian, self).__init__()
+# class SingleLaplacian(nn.Module):
+#     def __init__(self, device, dim=3):
+#         super(SingleLaplacian, self).__init__()
 
-        # 2D laplacian kernel (2D LOG operator.).
-        self.channel_dim = dim
-        laplacian_kernel = np.array([[0, -1, 0], [-1, 4, -1], [0, -1, 0]])
+#         # 2D laplacian kernel (2D LOG operator.).
+#         self.channel_dim = dim
+#         laplacian_kernel = np.array([[0, -1, 0], [-1, 4, -1], [0, -1, 0]])
 
-        laplacian_kernel = np.repeat(laplacian_kernel[None, None, :, :], dim, 0)
-        # learnable kernel.
-        self.kernel = torch.nn.Parameter(torch.FloatTensor(laplacian_kernel))
+#         laplacian_kernel = np.repeat(laplacian_kernel[None, None, :, :], dim, 0)
+#         # learnable kernel.
+#         self.kernel = torch.nn.Parameter(torch.FloatTensor(laplacian_kernel))
 
-    def forward(self, x):
-        # pyramid module in 4 scales.
-        lap = F.conv2d(x, self.kernel, groups=self.channel_dim, padding=1, stride=1, dilation=1)
+#     def forward(self, x):
+#         # pyramid module in 4 scales.
+#         lap = F.conv2d(x, self.kernel, groups=self.channel_dim, padding=1, stride=1, dilation=1)
 
-        return lap
+#         return lap
 
 
 class LaplacianPyramid(nn.Module):
@@ -494,6 +494,7 @@ class LocationAwareSIRR(nn.Module):
     def setup(self):
         # setup setting of the LRM.
         self.load_networks()
+        torch.save(self.state_dict(), "/tmp/image_dereflection.pth")
 
     def load_networks(self):
         # load parameters for the network: netG_T.
@@ -541,9 +542,6 @@ class LocationAwareSIRR(nn.Module):
         self.init()
 
         for i in range(3):
-            # self.h, self.c, self.c_map, self.fake_R, self.fake_T4, self.fake_T2, self.fake_T = \
-            #     self.netG_T(self.I, self.fake_Ts[-1], self.h, self.c)
-
             self.h, self.c, self.c_map, self.fake_R, self.fake_T = self.netG_T(
                 self.I, self.fake_Ts[-1], self.h, self.c
             )
