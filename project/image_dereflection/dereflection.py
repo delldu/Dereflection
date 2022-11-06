@@ -9,7 +9,7 @@
 # ***
 # ************************************************************************************/
 #
-import math
+import os
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -477,16 +477,25 @@ class LRM(nn.Module):
         return h, c, x
 
 
-class SIRRModel(nn.Module):
-    """Single Image Removable Reflection Model"""
-
+class SIRRBackbone(nn.Module):
     def __init__(self):
-        super(SIRRModel, self).__init__()
+        super(SIRRBackbone, self).__init__()
+        # Define max GPU/CPU memory -- 8G
+        self.MAX_H = 1024
+        self.MAX_W = 1024
+        self.MAX_TIMES = 8
         self.netG_T = LRM()
 
-    def forward_x(self, x):
-        b, c, h, w = x.shape
+        self.load_weights()
+        self.eval()
 
+    def load_weights(self, model_path="models/image_dereflection.pth"):
+        cdir = os.path.dirname(__file__)
+        checkpoint = model_path if cdir == "" else cdir + "/" + model_path
+        self.load_state_dict(torch.load(checkpoint))
+
+    def forward(self, x):
+        b, c, h, w = x.shape
         fake_h = torch.zeros(b, 64, h, w, device=x.device)
         fake_c = torch.zeros(b, 64, h, w, device=x.device)
         fake_t = x.clone().detach()
@@ -496,38 +505,37 @@ class SIRRModel(nn.Module):
 
         return fake_t.clamp(0.0, 1.0)
 
-    def forward(self, x):
-        # Define max GPU/CPU memory -- 4G
-        max_h = 1024
-        max_W = 1024
-        multi_times = 8
 
+class SIRRModel(nn.Module):
+    """Single Image Removable Reflection Model"""
+
+    def __init__(self):
+        super(SIRRModel, self).__init__()
+        self.backbone = SIRRBackbone().eval()
+
+    def forward(self, x):
         # Need Resize ?
         B, C, H, W = x.size()
-        if H > max_h or W > max_W:
-            s = min(max_h / H, max_W / W)
+        if H > self.backbone.MAX_H or W > self.backbone.MAX_W:
+            s = min(self.backbone.MAX_H / H, self.backbone.MAX_W / W)
             SH, SW = int(s * H), int(s * W)
             resize_x = F.interpolate(x, size=(SH, SW), mode="bilinear", align_corners=False)
         else:
             resize_x = x
 
-        # Need Zero Pad ?
-        ZH, ZW = resize_x.size(2), resize_x.size(3)
-        if ZH % multi_times != 0 or ZW % multi_times != 0:
-            NH = multi_times * math.ceil(ZH / multi_times)
-            NW = multi_times * math.ceil(ZW / multi_times)
-            resize_zeropad_x = resize_x.new_zeros(B, C, NH, NW)
-            resize_zeropad_x[:, :, 0:ZH, 0:ZW] = resize_x
+        # Need Pad ?
+        PH, PW = resize_x.size(2), resize_x.size(3)
+        if PH % self.backbone.MAX_TIMES != 0 or PW % self.backbone.MAX_TIMES != 0:
+            r_pad = self.backbone.MAX_TIMES - (PW % self.backbone.MAX_TIMES)
+            b_pad = self.backbone.MAX_TIMES - (PH % self.backbone.MAX_TIMES)
+            resize_pad_x = F.pad(resize_x, (0, r_pad, 0, b_pad), mode="replicate")
         else:
-            resize_zeropad_x = resize_x
+            resize_pad_x = resize_x
 
-        # MS Begin
-        y = self.forward_x(resize_zeropad_x)
-        del resize_zeropad_x, resize_x  # Release memory !!!
+        with torch.no_grad():
+            y = self.backbone(resize_pad_x)
 
-        y = y[:, :, 0:ZH, 0:ZW]  # Remove Zero Pads
-        if ZH != H or ZW != W:
-            y = F.interpolate(y, size=(H, W), mode="bilinear", align_corners=False)
-        # MS End
+        y = y[:, :, 0:PH, 0:PW]  # Remove Pads
+        y = F.interpolate(y, size=(H, W), mode="bilinear", align_corners=False)  # Remove Resize
 
         return y
