@@ -26,7 +26,7 @@ def get_tvm_model():
     TVM model base on torch.jit.trace, much more orignal than torch.jit.script
     """
 
-    model = dereflection.SIRRBackbone()
+    model = dereflection.SIRRModel()
     device = todos.model.get_device()
     model = model.to(device)
     model.eval()

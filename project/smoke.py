@@ -36,7 +36,7 @@ if __name__ == "__main__":
         # print("x: ", x.size())
 
         start_time = time.time()
-        with torch.jit.optimized_execution(False):        
+        with torch.jit.optimized_execution(False):
             with torch.no_grad():
                 y = model(x.to(device))
         torch.cuda.synchronize()
