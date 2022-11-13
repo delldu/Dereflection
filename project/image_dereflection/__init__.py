@@ -23,7 +23,7 @@ import pdb
 
 def get_tvm_model():
     """
-    TVM model base on torch.jit.trace, much more orignal than torch.jit.script
+    TVM model base on torch.jit.trace
     """
 
     model = dereflection.SIRRModel()
@@ -37,7 +37,10 @@ def get_tvm_model():
 
 def get_dereflection_model():
     """Create model."""
-    model = dereflection.SIRRModel()
+
+    base = dereflection.SIRRModel()
+    model = todos.model.ResizePadModel(base)
+
     device = todos.model.get_device()
     model = model.to(device)
     model.eval()
