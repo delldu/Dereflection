@@ -18,11 +18,14 @@ import torch
 import todos
 import image_dereflection
 
+SO_B, SO_C, SO_H, SO_W = 1, 3, 512, 512
+# Test performance ...
+#   Base:  {'mean': 391.2960116605973, 'median': 394.33121730107814, 'std': 5.1719331042581835}
+#   TVM :  {'mean': 744.9609028699342, 'median': 751.5188138000667, 'std': 15.507394749453397}
+
 
 def compile():
     model, device = image_dereflection.get_tvm_model()
-    SO_B, SO_C, SO_H, SO_W = 1, 3, model.MAX_H, model.MAX_W
-
     todos.data.mkdir("output")
     if not os.path.exists("output/image_dereflection.so"):
         input = torch.randn(SO_B, SO_C, SO_H, SO_W)
@@ -31,14 +34,12 @@ def compile():
 
 
 def predict(input_files, output_dir):
-    model, device = image_dereflection.get_tvm_model()
-    SO_B, SO_C, SO_H, SO_W = 1, 3, model.MAX_H, model.MAX_W
-
     # Create directory to store result
     todos.data.mkdir(output_dir)
 
     # load model
-    tvm_model = todos.tvmod.load("output/image_dereflection.so", "cuda")
+    device = todos.model.get_device()
+    tvm_model = todos.tvmod.load("output/image_dereflection.so", str(device))
 
     # load files
     image_filenames = todos.data.load_files(input_files)

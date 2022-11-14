@@ -483,9 +483,10 @@ class SIRRModel(nn.Module):
     def __init__(self):
         super(SIRRModel, self).__init__()
         # Define max GPU/CPU memory -- 10G (1024x1024), 4G (512x512)
-        self.MAX_H = 512
-        self.MAX_W = 512
+        self.MAX_H = 1024
+        self.MAX_W = 1024
         self.MAX_TIMES = 8
+        # GPU 6G, 1500ms
 
         self.netG_T = LRM()
         self.load_weights()
@@ -505,5 +506,7 @@ class SIRRModel(nn.Module):
         with torch.no_grad():
             for i in range(4):  # default is 3
                 fake_h, fake_c, fake_t = self.netG_T(x, fake_t, fake_h, fake_c)
+        # for i in range(4):  # default is 3
+        #     fake_h, fake_c, fake_t = self.netG_T(x, fake_t, fake_h, fake_c)
 
         return fake_t.clamp(0.0, 1.0)
